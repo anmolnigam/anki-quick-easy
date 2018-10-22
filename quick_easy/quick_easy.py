@@ -1,5 +1,5 @@
 """
-Quick & Easy v1.0
+Quick Easy v1.0
 Makes 'Easy' easy when you answer quickly.
 
 Copyright (c) 2016-2018 Liam Cooke
@@ -33,7 +33,9 @@ from aqt.reviewer import Reviewer
 
 # Default configuration for Anki 2.0
 LEGACY_CONFIG = {
-    'seconds': 1.0,
+    "secondsEasy": 1.0,
+    "secondsHard": 20.0,
+    "secondsTimeOut": 30.0
 }
 
 
@@ -51,22 +53,29 @@ def config():
 
 def my_defaultEase(self):
     ease = orig_defaultEase(self)
-
+    max_ease = self.mw.col.sched.answerButtons(self.card)
+	
     if self.hadCardQueue:
         # card came from the undo queue
-        return ease
-
-    if config()['seconds'] * 1000 <= self.card.timeTaken():
-        # wasn't answered quickly
         return ease
 
     if self.card.id in self._answeredIds:
         # card is being reviewed again
         return ease
+		
+    if (config()["secondsTimeOut"] * 1000) <= self.card.timeTaken():
+        # away from keyboard
+        return ease
+		
+    if (config()["secondsHard"] * 1000) <= self.card.timeTaken():
+        # was answered slowly
+        return max(ease - 1, 1)
 
-    max_ease = self.mw.col.sched.answerButtons(self.card)
-    return min(ease + 1, max_ease)
+    if (config()["secondsEasy"] * 1000) <= self.card.timeTaken():
+        # was answered quickly
+        return min(ease + 1, max_ease)
 
+    return ease
 
 orig_defaultEase = Reviewer._defaultEase
 Reviewer._defaultEase = my_defaultEase
